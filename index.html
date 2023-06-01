@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+        <title>Babylon.js sample code</title>
+
+        <!-- Babylon.js -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+        <script src="https://assets.babylonjs.com/generated/Assets.js"></script>
+        <script src="https://cdn.babylonjs.com/ammo.js"></script>
+        <script src="https://cdn.babylonjs.com/havok/HavokPhysics_umd.js"></script>
+        <script src="https://cdn.babylonjs.com/cannon.js"></script>
+        <script src="https://cdn.babylonjs.com/Oimo.js"></script>
+        <script src="https://cdn.babylonjs.com/earcut.min.js"></script>
+        <script src="https://cdn.babylonjs.com/babylon.js"></script>
+        <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+        <script src="https://cdn.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+        <script src="https://cdn.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+        <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+        <script src="https://cdn.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+        <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+        <script src="https://cdn.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+
+        <style>
+            html, body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #renderCanvas {
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+            }
+            
+            #canvasZone {
+                width: 100%;
+                height: 100%;
+            }
+        </style>
+    </head>
+<body>
+    <div id="canvasZone"><canvas id="renderCanvas"></canvas></div>
+    <script>
+        var canvas = document.getElementById("renderCanvas");
+
+        var startRenderLoop = function (engine, canvas) {
+            engine.runRenderLoop(function () {
+                if (sceneToRender && sceneToRender.activeCamera) {
+                    sceneToRender.render();
+                }
+            });
+        }
+
+        var engine = null;
+        var scene = null;
+        var sceneToRender = null;
+        var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true,  disableWebGL2Support: false}); };
+        var createScene = function () {
+    // This creates a basic Babylon Scene object (non-mesh)
+    var scene = new BABYLON.Scene(engine);
+    scene.physicsEnabled = true
+    
+    scene.collisionsEnabled = true;
+    scene.enablePhysics();
+    // This creates and positions a free camera (non-mesh)
+    var camera = new BABYLON.UniversalCamera("UniversalCamera", new BABYLON.Vector3(0, 2, -25), scene);
+
+    // Targets the camera to a particular position. In this case the scene origin
+    camera.setTarget(BABYLON.Vector3.Zero());
+
+    // Attach the camera to the canvas
+    // camera.applyGravity = true;
+    camera.ellipsoid = new BABYLON.Vector3(.4, .8, .4);
+    camera.checkCollisions = true;
+    camera.attachControl(canvas, true);
+
+    const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1, 1, 0));
+
+
+    //Hero
+
+    var hero = BABYLON.Mesh.CreateBox('hero', 2.0, scene, false, BABYLON.Mesh.FRONTSIDE);
+    hero.position.x = 0.0;
+    hero.position.y = 1.0;
+    hero.position.z = 0.0;
+    hero.physicsImpostor = new BABYLON.PhysicsImpostor(hero, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 1, restitution: 0.5, friction: 0.1 }, scene);
+    
+    // hero.physicsImpostor.physicsBody.fixedRotation = true;
+    // hero.physicsImpostor.physicsBody.updateMassProperties();
+
+    // pointer
+    var pointer = BABYLON.Mesh.CreateSphere("Sphere", 16.0, 0.01, scene, false, BABYLON.Mesh.DOUBLESIDE);
+    // move the sphere upward 1/2 of its height
+    pointer.position.x = 0.0;
+    pointer.position.y = 0.0;
+    pointer.position.z = 0.0;
+    pointer.isPickable = false;
+
+    var moveForward = false;
+    var moveBackward = false;
+    var moveRight = false;
+    var moveLeft = false;
+
+    var onKeyDown = function (event) {
+        switch (event.keyCode) {
+            case 38: // up
+            case 87: // w
+                moveForward = true;
+                break;
+
+            case 37: // left
+            case 65: // a
+                moveLeft = true; break;
+
+            case 40: // down
+            case 83: // s
+                moveBackward = true;
+                break;
+
+            case 39: // right
+            case 68: // d
+                moveRight = true;
+                break;
+
+            case 32: // space
+                break;
+        }
+    };
+
+    var onKeyUp = function (event) {
+        switch (event.keyCode) {
+            case 38: // up
+            case 87: // w
+                moveForward = false;
+                break;
+
+            case 37: // left
+            case 65: // a
+                moveLeft = false;
+                break;
+
+            case 40: // down
+            case 83: // a
+                moveBackward = false;
+                break;
+
+            case 39: // right
+            case 68: // d
+                moveRight = false;
+                break;
+        }
+    };
+
+    document.addEventListener('keydown', onKeyDown, false);
+    document.addEventListener('keyup', onKeyUp, false);
+
+
+    scene.registerBeforeRender(function () {
+        //Your code here
+        //Step
+        //let stats = document.getElementById("stats");
+        //stats.innerHTML = "";             
+
+        camera.position.x = hero.position.x;
+        camera.position.y = hero.position.y;
+        camera.position.z = hero.position.z;
+        pointer.position = camera.getTarget();
+
+        var forward = camera.getTarget().subtract(camera.position).normalize()
+        forward.y = 0;
+        var right = BABYLON.Vector3.Cross(forward, camera.upVector).normalize();
+        right.y = 0;
+
+        var SPEED = 3;
+        let f_speed = 0;
+        var s_speed = 0;
+        var u_speed = 0;
+
+        if (moveForward) {
+            f_speed = SPEED;
+        }
+        if (moveBackward) {
+            f_speed = -SPEED;
+        }
+
+        if (moveRight) {
+            s_speed = SPEED;
+        }
+
+        if (moveLeft) {
+            s_speed = -SPEED;
+        }
+
+        var move = (forward.scale(f_speed)).subtract((right.scale(s_speed))).subtract(camera.upVector.scale(u_speed));
+
+        hero.physicsImpostor.physicsBody.velocity.x = move.x;
+        hero.physicsImpostor.physicsBody.velocity.z = move.z;
+        hero.physicsImpostor.physicsBody.velocity.y = move.y;
+
+    });
+
+    /*//WASD
+    camera.keysUp.push(87); 
+    camera.keysDown.push(83);            
+    camera.keysRight.push(68);
+    camera.keysLeft.push(65);
+    */
+
+
+    //Jump
+    /* function jump(){
+      hero.physicsImpostor.applyImpulse(new BABYLON.Vector3(1, 20, -1), hero.getAbsolutePosition());
+    }
+    
+    document.body.onkeyup = function(e){
+      if(e.keyCode == 32){
+        //your code
+        console.log("jump");
+        setTimeout(jump(), 10000); 
+    
+      }
+    }*/
+
+    //Mouse
+    //We start without being locked.
+    var isLocked = false;
+
+    // On click event, request pointer lock
+    scene.onPointerDown = function (evt) {
+
+        //true/false check if we're locked, faster than checking pointerlock on each single click.
+        if (!isLocked) {
+            canvas.requestPointerLock = canvas.requestPointerLock || canvas.msRequestPointerLock || canvas.mozRequestPointerLock || canvas.webkitRequestPointerLock;
+            if (canvas.requestPointerLock) {
+                canvas.requestPointerLock();
+            }
+        }
+
+        //continue with shooting requests or whatever :P
+        //evt === 1 (mouse wheel click (not scrolling))
+        //evt === 2 (right mouse click)
+    };
+
+
+    let ground = BABYLON.MeshBuilder.CreateGround(
+        "ground",
+        { width: 1000, height: 1000 },
+        scene
+    );
+    ground.checkCollisions = true;
+    ground.physicsImpostor = new BABYLON.PhysicsImpostor(ground, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.5, friction:0.1 });
+
+    let groundMat = new BABYLON.StandardMaterial("ground", scene);
+    groundMat.diffuseTexture = new BABYLON.Texture("https://images.pexels.com/photos/1587548/pexels-photo-1587548.jpeg?cs=srgb&dl=pexels-colys-hat-1587548.jpg&fm=jpg", scene);
+    groundMat.diffuseTexture.uScale = 60;
+    groundMat.diffuseTexture.vScale = 60;
+    groundMat.specularColor = new BABYLON.Color3(0, 0, 0);
+    ground.material = groundMat;
+
+    // var model = BABYLON.SceneLoader.ImportMesh(["Plane.002","Plane.001"], "http://127.0.0.1:5501/", "shaat.glb");
+    BABYLON.SceneLoader.ImportMesh("", "http://127.0.0.1:5501/", "shaat.glb", scene, function (newMeshes) {
+        console.log(newMeshes.length);
+        newMeshes.checkCollisions = true;
+        var walls = newMeshes.forEach((m)=>{
+            return m.checkCollisions = true;
+        })
+        var frames = newMeshes.filter((mesh) => {
+            return mesh.name.startsWith("Plane.0") && mesh.name != "Plane.001"
+        })
+        console.log("poko" + frames.length)
+        // var wallTexture = newMeshes[0];
+
+        var materialWall = new BABYLON.StandardMaterial("material", scene);
+        materialWall.diffuseTexture = new BABYLON.Texture("http://127.0.0.1:5501/whatsapp_image_2023-06-01_at_1.10.28_pm.jpeg", scene);
+        materialWall.diffuseTexture.wAng = -90;
+        // frames[0].material = materialWall;
+        frames.forEach((m) => {
+            // var materialWall = new BABYLON.StandardMaterial("material", scene);
+            // materialWall.diffuseColor = new BABYLON.Color3(0,1,0);
+
+            m.material = materialWall;
+            
+
+
+        });
+    
+
+    });
+
+
+    return scene;
+};
+
+                window.initFunction = async function() {
+                    
+                    
+                    
+                    var asyncEngineCreation = async function() {
+                        try {
+                        return createDefaultEngine();
+                        } catch(e) {
+                        console.log("the available createEngine function failed. Creating the default engine instead");
+                        return createDefaultEngine();
+                        }
+                    }
+
+                    window.engine = await asyncEngineCreation();
+        if (!engine) throw 'engine should not be null.';
+        startRenderLoop(engine, canvas);
+        window.scene = createScene();};
+        initFunction().then(() => {sceneToRender = scene                    
+        });
+
+        // Resize
+        window.addEventListener("resize", function () {
+            engine.resize();
+        });
+    </script>
+</body>
+</html>
