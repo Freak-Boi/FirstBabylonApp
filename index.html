@@ -263,7 +263,7 @@
     ground.material = groundMat;
 
     // var model = BABYLON.SceneLoader.ImportMesh(["Plane.002","Plane.001"], "http://127.0.0.1:5501/", "shaat.glb");
-    BABYLON.SceneLoader.ImportMesh("", "http://127.0.0.1:5501/", "shaat.glb", scene, function (newMeshes) {
+    BABYLON.SceneLoader.ImportMesh("", "/texture/", "shaat.glb", scene, function (newMeshes) {
         console.log(newMeshes.length);
         newMeshes.checkCollisions = true;
         var walls = newMeshes.forEach((m)=>{
@@ -276,7 +276,7 @@
         // var wallTexture = newMeshes[0];
 
         var materialWall = new BABYLON.StandardMaterial("material", scene);
-        materialWall.diffuseTexture = new BABYLON.Texture("http://127.0.0.1:5501/whatsapp_image_2023-06-01_at_1.10.28_pm.jpeg", scene);
+        materialWall.diffuseTexture = new BABYLON.Texture("/texture/whatsapp_image_2023-06-01_at_1.10.28_pm.jpeg", scene);
         materialWall.diffuseTexture.wAng = -90;
         // frames[0].material = materialWall;
         frames.forEach((m) => {
